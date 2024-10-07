@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <meta name="viewport" content="user-scalable=no">
+        <link rel="icon" href="icon/icon.png" type="image/png">
+        <link rel="apple-touch-icon" href="icon/icon.png">
+        <link rel="stylesheet" type="text/css" href="css/game.css">
+        <title>绿光</title>
+    </head>
+    <body style="background-color: black">
+        <script type="text/javascript" src="js/main.js"></script>
+        <table id="edi" style="display: none;position: absolute;z-index: 100;top:0;left:0;width:100vw;height:100vh;background-color: #217CD2">
+            <tr>
+                <td rowspan="4">
+                    <select v-model="select" @change="loadEventData" size="47" style="width:200px">
+                        <option v-for="(e,index) of $dataEvent" :value="index">[{{e.id.padZero(3)}}]{{e.title}}</option>
+                    </select>
+                </td>
+                <td>
+                    <div style="height: 30px;background-color: #fff2">
+                        <button @click="addNewEvent">新增</button>
+                        <button @click="saveEventData">保存</button>
+                        <button @click="setSelectedEvent">设置</button>
+                        <span style="width: 100px">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                        <span @click="copyToClipboard('§颜色§')"style="background-color: white" title="O橙色&#10;Y黄色&#10;W白色&#10;G绿色&#10;R红色&#10;B蓝色&#10;P紫色&#10;F粉色&#10;C青色&#10;Z紫红色&#10;D灰色&#10;!加粗&#10;x换行">§颜色§</span>
+                        <span @click="copyToClipboard('${替换用词}')"style="background-color: white" title="i[道具-白]&#10;w[武器-红]&#10;e[护甲-黄]&#10;s[技能-绿]&#10;q[角色名-蓝]&#10;p[角色昵称-蓝]&#10;n[状态-紫]&#10;z[装备类型-紫红]&#10;c[武器类型-青]&#10;f[护甲类型-粉]&#10;b[元素-褐]&#10;d[技能类型-灰]&#10;v[变量-加粗]">${替换用词}</span>
+                        <span @click="copyToClipboard('┇图标┇')" style="background-color: white">┇图标┇</span>
+                        <span @click="copyToClipboard('选项图标§')" style="background-color: white">选项图标§</span>
+                        <span style="width: 100px">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                        <button @click="deleteEvent">删除</button>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div style="height: 200px;background-color: #fff2">
+                        <table>
+                            <tr>
+                                <td colspan="3"><input @keydown="handleKeydown(data,'title',$event)"  @change="handleInputChange" v-model="data.title"></td>
+                            </tr>
+                            <tr>
+                                <td colspan="3">
+                                    <div @click="showImagePicker" style="width: 450px;height: 150px;border: 1px seashell solid;background-repeat: no-repeat"
+                                         :style="{ backgroundImage: `url(img/event/${data.img}.png)`, backgroundPosition: `calc(50% + ${data.sx*-1}px) calc(50% + ${data.sy*-1}px)` }">
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><input type="range" @input="handleInputChange" v-model="data.sx"  min="-200" max="200"></td>
+                                <td><input type="range" @input="handleInputChange" v-model="data.sy"  min="-200" max="200"></td>
+                                <td><button @click="addContentEntry">增加</button></td>
+                            </tr>
+                        </table>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div style="height: 290px;overflow-y: scroll;background-color: #fff2">
+                        <table>
+                            <tr v-for="(text, index) of data.cont">
+                                <td>
+                                    <textarea @keydown="handleKeydown(data.cont,index,$event)"  v-model="data.cont[index]" style="width: 520px; height:75px; resize: none;"></textarea>
+                                </td>
+                                <td>
+                                    <button @click="deleteContentEntry(index)" style="width: 20px">×</button><br>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div style="height: 280px;overflow-y: scroll;background-color: #fff2">
+                     <table v-if="!bool" style="width: 560px">
+                         <tr>
+                             <td>
+                                 <button @click="addChooses()">增加</button>
+                                 <button @click="bool=true">编辑</button>
+                                 <button style="margin-left: 70px" @click="delChoose()">删除</button>
+                             </td>
+                         </tr>  
+                       <tr>
+                           <td style="vertical-align: top;">
+                               <table v-if="data.choose[choose]" style="width: 200px">
+                                   <tr><td width="100px">显示<input width="100px" @keydown="handleKeydown(data.choose[choose],'visible',$event)"  v-model="data.choose[choose].visible"></td></tr>
+                                   <tr><td width="100px">隐藏<input width="100px" @keydown="handleKeydown(data.choose[choose],'hidden',$event)"  v-model="data.choose[choose].hidden"></td></tr>
+                                   <tr><td width="100px">激活<input width="100px" @keydown="handleKeydown(data.choose[choose],'enabled',$event)"  v-model="data.choose[choose].enabled"></td></tr>
+                                   <tr><td width="100px">禁用<input width="100px" @keydown="handleKeydown(data.choose[choose],'disable',$event)"  v-model="data.choose[choose].disable"></td></tr>
+                               </table>
+                           </td>
+                           <td style="vertical-align: top;">
+                               <input @click="selectChoose(index)"  v-for="(data, index) of data.choose" style="width: 370px" 
+                                      :style="{color:choose===index?'#f00':'#000'}" @keydown="handleKeydown(data,'text',$event)"
+                                      @input="handleInputChange" v-model="data.text">
+                           </td>
+                       </tr>
+                   </table>
+                     <table v-if="bool">
+                         <tr>
+                             <td>
+                                 <button  @click="addChoose">增加</button>
+                                 <button style="margin-left: 520px"  @click="bool=false">返回</button>
+                             </td>
+
+                             
+                         </tr>
+                         <tr>
+                             <td>
+                                 <table>
+                                     <tr v-for="(text, index) of data.choose[choose].mes">
+                                         <td>
+                                             <textarea @keydown="handleKeydown(data.choose[choose].mes,index,$event)" v-model="data.choose[choose].mes[index]" style="width: 555px; height:75px; resize: none;"></textarea>
+                                         </td>
+                                         <td>
+                                             <button @click="deleteChoose(index)" style="width: 20px">×</button><br>
+                                         </td>
+                                     </tr>
+                                 </table>
+                             </td>
+                         </tr>
+                     </table>   
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td v-if="imgshow" @dblclick="toggleImageVisibility(false)" style="display: flex;background: #22222288;flex-wrap: wrap;align-content:flex-start; align-items: flex-start;justify-content: center;position: absolute;top: 0;left: 0;width:100vw;height:100vh;overflow-y: scroll">
+                    <div @click="setEventImage(img)" style="background-size: 100%;background-position: center;background-repeat: no-repeat;margin: 2px;border: 1px solid black;width:180px;height:60px" v-for="img of eventImg"
+                         :style="{ backgroundImage: `url(img/event/${img})`}">
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </body>
+</html>
